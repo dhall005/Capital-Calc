@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How Much Capital Do I Need?</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #141414;
+    --surface2: #1c1c1c;
+    --border: #2a2a2a;
+    --accent: #c8ff00;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #666;
+    --input-bg: #1a1f0a;
+    --input-border: #4a6000;
+    --positive: #c8ff00;
+    --negative: #ff4444;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    padding: 48px 0 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .header-left h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(42px, 7vw, 80px);
+    line-height: 0.9;
+    letter-spacing: 0.02em;
+    color: var(--accent);
+  }
+
+  .header-left h1 span {
+    color: var(--text);
+    display: block;
+  }
+
+  .header-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 12px;
+  }
+
+  .instruction-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    border-radius: 2px;
+    max-width: 340px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .instruction-box strong {
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Year tabs */
+  .year-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 32px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    width: fit-content;
+  }
+
+  .year-tab {
+    padding: 10px 24px;
+    background: var(--surface);
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-right: 1px solid var(--border);
+    letter-spacing: 0.08em;
+  }
+
+  .year-tab:last-child { border-right: none; }
+  .year-tab:hover { background: var(--surface2); color: var(--text); }
+  .year-tab.active {
+    background: var(--accent);
+    color: #000;
+    font-weight: 500;
+  }
+
+  /* Main grid */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 2px;
+  }
+
+  .section {
+    background: var(--surface);
+    padding: 28px 28px 24px;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .field {
+    margin-bottom: 18px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .field .tooltip {
+    display: none;
+    font-size: 11px;
+    color: #555;
+    line-height: 1.5;
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  .field:hover .tooltip { display: block; }
+
+  input[type="number"] {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    padding: 10px 14px;
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  input[type="number"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(200, 255, 0, 0.08);
+  }
+
+  .prefix-wrap {
+    position: relative;
+  }
+
+  .prefix-wrap::before {
+    content: '$';
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    pointer-events: none;
+  }
+
+  .prefix-wrap input { padding-left: 28px; }
+
+  /* Calculated fields */
+  .calc-field {
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .calc-field:last-child { border-bottom: none; }
+
+  .calc-field .name {
+    font-size: 12px;
+    color: var(--muted);
+    flex: 1;
+    padding-right: 16px;
+    line-height: 1.4;
+  }
+
+  .calc-field .value {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    color: var(--text);
+    text-align: right;
+    min-width: 90px;
+  }
+
+  .calc-field .value.accent { color: var(--accent); }
+  .calc-field .value.warn { color: var(--accent2); }
+
+  /* Results panel */
+  .results-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    padding: 32px 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+    margin-bottom: 2px;
+  }
+
+  .result-main {
+    flex: 1;
+  }
+
+  .result-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .result-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 6vw, 72px);
+    line-height: 1;
+    color: var(--accent2);
+    letter-spacing: 0.02em;
+  }
+
+  .result-number.zero { color: var(--accent); }
+
+  .result-context {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.5;
+    max-width: 360px;
+  }
+
+  .result-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 32px;
+    min-width: 280px;
+  }
+
+  .metric {
+    border-left: 2px solid var(--border);
+    padding-left: 12px;
+  }
+
+  .metric .m-label {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .metric .m-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    color: var(--text);
+  }
+
+  /* Year summary */
+  .year-summary {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+
+  .year-col {
+    background: var(--surface);
+    padding: 16px 14px;
+    text-align: center;
+  }
+
+  .year-col.active-year { background: var(--surface2); }
+
+  .year-col .yr {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    letter-spacing: 0.1em;
+  }
+
+  .year-col .yr-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--accent2);
+    line-height: 1;
+  }
+
+  .year-col .yr-label {
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.08em;
+  }
+
+  /* Disclaimer */
+  .disclaimer {
+    font-size: 11px;
+    color: #3a3a3a;
+    line-height: 1.6;
+    padding: 20px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 32px;
+  }
+
+  /* Animation */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .container > * {
+    animation: fadeUp 0.4s ease backwards;
+  }
+
+  .container > *:nth-child(1) { animation-delay: 0s; }
+  .container > *:nth-child(2) { animation-delay: 0.08s; }
+  .container > *:nth-child(3) { animation-delay: 0.14s; }
+  .container > *:nth-child(4) { animation-delay: 0.2s; }
+  .container > *:nth-child(5) { animation-delay: 0.26s; }
+
+  @media (max-width: 700px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .results-panel { flex-direction: column; align-items: flex-start; }
+    .result-metrics { min-width: auto; width: 100%; }
+    .year-summary { grid-template-columns: repeat(3, 1fr); }
+    header { flex-direction: column; align-items: flex-start; }
+    .instruction-box { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-left">
+      <h1>How Much Capital<span>Do I Need?</span></h1>
+      <p class="header-sub">Capital Requirement Calculator &nbsp;·&nbsp; 5-Year Projection</p>
+    </div>
+    <div class="instruction-box">
+      Edit the <strong>yellow inputs</strong> below. All other values calculate automatically. Hover any field for its definition.
+    </div>
+  </header>
+
+  <!-- Year Tabs -->
+  <div class="year-tabs" id="yearTabs"></div>
+
+  <!-- 5-Year Summary Bar -->
+  <div class="year-summary" id="yearSummary"></div>
+
+  <!-- Main Calculator -->
+  <div class="main-grid">
+    <!-- Inputs -->
+    <div class="section">
+      <div class="section-label">— Inputs (editable)</div>
+
+      <div class="field">
+        <label>Starting Year</label>
+        <input type="number" id="startYear" value="2024" min="2000" max="2050" step="1">
+        <div class="tooltip">The first year you want to analyze. The next 4 years populate automatically.</div>
+      </div>
+
+      <div class="field">
+        <label>Revenue Goal</label>
+        <div class="prefix-wrap">
+          <input type="number" id="revenueGoal" value="100000" min="0" step="1000">
+        </div>
+        <div class="tooltip">What is your revenue goal for each year?</div>
+      </div>
+
+      <div class="field">
+        <label>Actual Sales</label>
+        <div class="prefix-wrap">
+          <input type="number" id="sales" value="15000" min="0" step="1000">
+        </div>
+        <div class="tooltip">Actual sales for the year. If projecting forward, use the prior year's revenue goal.</div>
+      </div>
+
+      <div class="field">
+        <label>Company Profit (Net Income)</label>
+        <div class="prefix-wrap">
+          <input type="number" id="profit" value="10000" min="0" step="1000">
+        </div>
+        <div class="tooltip">Sales minus all costs. For projections, use prior year's margin × current sales projection.</div>
+      </div>
+
+      <div class="field">
+        <label>Owner Dividends Paid</label>
+        <div class="prefix-wrap">
+          <input type="number" id="dividends" value="10000" min="0" step="1000">
+        </div>
+        <div class="tooltip">Profits distributed to owners. This determines your dividend payout ratio and retention rate.</div>
+      </div>
+
+      <div class="field">
+        <label>Total Assets</label>
+        <div class="prefix-wrap">
+          <input type="number" id="assets" value="5000" min="0" step="1000">
+        </div>
+        <div class="tooltip">Inventory, equipment, and anything in the business that generates revenue. Use end-of-year value.</div>
+      </div>
+
+      <div class="field">
+        <label>Total Debt</label>
+        <div class="prefix-wrap">
+          <input type="number" id="debt" value="0" min="0" step="1000">
+        </div>
+        <div class="tooltip">How much money is owed to creditors.</div>
+      </div>
+    </div>
+
+    <!-- Calculated -->
+    <div class="section">
+      <div class="section-label">— Calculated Metrics</div>
+
+      <div class="calc-field">
+        <div class="name">Profit Margin</div>
+        <div class="value accent" id="profitMargin">—</div>
+      </div>
+      <div class="calc-field">
+        <div class="name">Dividend Payout Ratio</div>
+        <div class="value" id="dividendPayout">—</div>
+      </div>
+      <div class="calc-field">
+        <div class="name">Retention Rate</div>
+        <div class="value accent" id="retentionRate">—</div>
+      </div>
+      <div class="calc-field">
+        <div class="name">Equity (Assets − Debt)</div>
+        <div class="value" id="equity">—</div>
+      </div>
+      <div class="calc-field">
+        <div class="name">Return on Equity (ROE)</div>
+        <div class="value accent" id="roe">—</div>
+      </div>
+      <div class="calc-field">
+        <div class="name">Asset Turnover</div>
+        <div class="value" id="assetTurnover">—</div>
+      </div>
+      <div class="calc-field">
+        <div class="name">Sustainable Growth Rate</div>
+        <div class="value accent" id="sustainableGrowth">—</div>
+      </div>
+      <div class="calc-field">
+        <div class="name">Growth Goal</div>
+        <div class="value warn" id="growthGoal">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-panel">
+    <div class="result-main">
+      <div class="result-label">Outside Capital Required</div>
+      <div class="result-number" id="capitalNeeded">—</div>
+      <div class="result-context" id="capitalContext">Enter your numbers above to calculate how much external funding (loans or investment) you need to hit your revenue goal.</div>
+    </div>
+    <div class="result-metrics">
+      <div class="metric">
+        <div class="m-label">Revenue Goal</div>
+        <div class="m-value" id="metaGoal">—</div>
+      </div>
+      <div class="metric">
+        <div class="m-label">Current Sales</div>
+        <div class="m-value" id="metaSales">—</div>
+      </div>
+      <div class="metric">
+        <div class="m-label">Sust. Growth</div>
+        <div class="m-value" id="metaSGR">—</div>
+      </div>
+      <div class="metric">
+        <div class="m-label">Year</div>
+        <div class="m-value" id="metaYear">—</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="disclaimer">
+    Disclaimer: The creator of this tool cannot know the details of your specific business. This calculator does not constitute financial or business advice. Any decisions made based on this tool are solely at your own discretion. Results are estimates only and may not represent actual outcomes. The creator cannot be held liable for any actions taken after using this tool.
+  </p>
+
+</div>
+
+<script>
+  const years = [0,1,2,3,4];
+  let activeYear = 0;
+
+  // Per-year state
+  const state = years.map(i => ({
+    revenueGoal: i === 0 ? 100000 : 100000,
+    sales: 15000,
+    profit: 10000,
+    dividends: i === 0 ? 10000 : 2500,
+    assets: 5000,
+    debt: 0,
+  }));
+
+  const inputs = {
+    startYear: document.getElementById('startYear'),
+    revenueGoal: document.getElementById('revenueGoal'),
+    sales: document.getElementById('sales'),
+    profit: document.getElementById('profit'),
+    dividends: document.getElementById('dividends'),
+    assets: document.getElementById('assets'),
+    debt: document.getElementById('debt'),
+  };
+
+  function getStartYear() {
+    return parseInt(inputs.startYear.value) || 2024;
+  }
+
+  function calculate(s) {
+    const pm = s.sales > 0 ? s.profit / s.sales : 0;
+    const dpr = s.profit > 0 ? s.dividends / s.profit : 0;
+    const rr = 1 - dpr;
+    const equity = s.assets - s.debt;
+    const roe = equity > 0 ? s.profit / equity : 0;
+    const sgr = roe * rr;
+    const at = s.assets > 0 ? s.sales / s.assets : 0;
+    const growthGoal = s.sales > 0 ? (s.revenueGoal - s.sales) / s.sales : 0;
+    // Outside capital = (growthGoal - sgr) * sales / assetTurnover
+    const capitalNeeded = at > 0 ? Math.max(0, (growthGoal - sgr) * s.sales / at) : 0;
+    return { pm, dpr, rr, equity, roe, sgr, at, growthGoal, capitalNeeded };
+  }
+
+  function fmt(n, type) {
+    if (!isFinite(n)) return '—';
+    if (type === 'pct') return (n * 100).toFixed(2) + '%';
+    if (type === 'dollar') return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (type === 'int') return '$' + Math.round(n).toLocaleString('en-US');
+    return n.toFixed(2);
+  }
+
+  function renderTabs() {
+    const tabs = document.getElementById('yearTabs');
+    tabs.innerHTML = '';
+    years.forEach(i => {
+      const btn = document.createElement('button');
+      btn.className = 'year-tab' + (i === activeYear ? ' active' : '');
+      btn.textContent = getStartYear() + i;
+      btn.onclick = () => { switchYear(i); };
+      tabs.appendChild(btn);
+    });
+  }
+
+  function renderSummary() {
+    const summary = document.getElementById('yearSummary');
+    summary.innerHTML = '';
+    years.forEach(i => {
+      const c = calculate(state[i]);
+      const col = document.createElement('div');
+      col.className = 'year-col' + (i === activeYear ? ' active-year' : '');
+      col.innerHTML = `
+        <div class="yr">${getStartYear() + i}</div>
+        <div class="yr-val">${fmt(c.capitalNeeded, 'int')}</div>
+        <div class="yr-label">Outside Capital</div>
+      `;
+      col.onclick = () => switchYear(i);
+      col.style.cursor = 'pointer';
+      summary.appendChild(col);
+    });
+  }
+
+  function renderCalcs() {
+    const s = state[activeYear];
+    const c = calculate(s);
+    document.getElementById('profitMargin').textContent = fmt(c.pm, 'pct');
+    document.getElementById('dividendPayout').textContent = fmt(c.dpr, 'pct');
+    document.getElementById('retentionRate').textContent = fmt(c.rr, 'pct');
+    document.getElementById('equity').textContent = fmt(s.assets - s.debt, 'int');
+    document.getElementById('roe').textContent = fmt(c.roe, 'pct');
+    document.getElementById('assetTurnover').textContent = fmt(c.at, 'pct');
+    document.getElementById('sustainableGrowth').textContent = fmt(c.sgr, 'pct');
+    document.getElementById('growthGoal').textContent = fmt(c.growthGoal, 'pct');
+
+    const capEl = document.getElementById('capitalNeeded');
+    capEl.textContent = fmt(c.capitalNeeded, 'int');
+    capEl.className = 'result-number' + (c.capitalNeeded === 0 ? ' zero' : '');
+
+    const ctx = document.getElementById('capitalContext');
+    if (c.capitalNeeded === 0) {
+      ctx.textContent = 'Your sustainable growth rate exceeds your growth goal — no outside capital needed for this year.';
+    } else {
+      ctx.textContent = `To grow from ${fmt(s.sales,'int')} to your ${fmt(s.revenueGoal,'int')} goal, you need approximately ${fmt(c.capitalNeeded,'int')} in external loans or investment beyond what organic growth can provide.`;
+    }
+
+    document.getElementById('metaGoal').textContent = fmt(s.revenueGoal, 'int');
+    document.getElementById('metaSales').textContent = fmt(s.sales, 'int');
+    document.getElementById('metaSGR').textContent = fmt(c.sgr, 'pct');
+    document.getElementById('metaYear').textContent = getStartYear() + activeYear;
+  }
+
+  function loadYear(i) {
+    const s = state[i];
+    inputs.revenueGoal.value = s.revenueGoal;
+    inputs.sales.value = s.sales;
+    inputs.profit.value = s.profit;
+    inputs.dividends.value = s.dividends;
+    inputs.assets.value = s.assets;
+    inputs.debt.value = s.debt;
+  }
+
+  function saveYear(i) {
+    state[i].revenueGoal = parseFloat(inputs.revenueGoal.value) || 0;
+    state[i].sales = parseFloat(inputs.sales.value) || 0;
+    state[i].profit = parseFloat(inputs.profit.value) || 0;
+    state[i].dividends = parseFloat(inputs.dividends.value) || 0;
+    state[i].assets = parseFloat(inputs.assets.value) || 0;
+    state[i].debt = parseFloat(inputs.debt.value) || 0;
+  }
+
+  function switchYear(i) {
+    saveYear(activeYear);
+    activeYear = i;
+    loadYear(i);
+    renderTabs();
+    renderSummary();
+    renderCalcs();
+  }
+
+  function onInput() {
+    saveYear(activeYear);
+    renderCalcs();
+    renderSummary();
+    renderTabs();
+  }
+
+  // Attach listeners
+  Object.values(inputs).forEach(el => el.addEventListener('input', onInput));
+  inputs.startYear.addEventListener('input', () => { renderTabs(); renderSummary(); renderCalcs(); document.getElementById('metaYear').textContent = getStartYear() + activeYear; });
+
+  // Init
+  renderTabs();
+  loadYear(0);
+  renderSummary();
+  renderCalcs();
+</script>
+</body>
+</html>
